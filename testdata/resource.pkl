@@ -1,0 +1,46 @@
+/*
+ * Conformance Test: Create DNS Record
+ *
+ * This file defines the initial resource state for conformance testing.
+ * The conformance test harness will apply this file first.
+ *
+ * Prerequisites:
+ * - CLOUDFLARE_API_TOKEN environment variable must be set
+ * - CLOUDFLARE_ACCOUNT_ID environment variable must be set
+ * - CLOUDFLARE_ZONE_ID environment variable must be set (existing zone to create records in)
+ */
+amends "@formae/forma.pkl"
+import "@formae/formae.pkl"
+
+import "@cloudflare/dns/record.pkl" as dnsRecord
+
+local stackName = "plugin-sdk-test-stack"
+// Read the test run ID from environment variable set by the test harness
+// This ensures consistent naming within a test run but unique names between runs
+local testRunID = read("env:FORMAE_TEST_RUN_ID")
+local zoneId = read("env:CLOUDFLARE_ZONE_ID")
+
+forma {
+  new formae.Stack {
+    label = stackName
+    description = "Plugin SDK conformance test stack"
+  }
+
+  new formae.Target {
+    label = "cloudflare-target"
+    namespace = "CLOUDFLARE"
+    config = new Mapping {
+      ["ZoneId"] = zoneId
+    }
+  }
+
+  new dnsRecord.Record {
+    label = "plugin-sdk-test-record"
+    zone_id = zoneId
+    name = "formae-test-\(testRunID)"
+    `type` = "TXT"
+    content = "formae-plugin-sdk-test-initial"
+    ttl = 300
+    comment = "Test record for plugin SDK conformance tests"
+  }
+}

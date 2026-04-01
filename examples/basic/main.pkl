@@ -1,0 +1,91 @@
+/*
+ * Cloudflare DNS Example
+ *
+ * This example shows how to manage DNS zones and records using the Cloudflare plugin.
+ *
+ * Prerequisites:
+ * - Set CLOUDFLARE_API_TOKEN environment variable with a Cloudflare API token
+ * - Replace the account_id and zone values with your own
+ *
+ * Run with: formae apply --mode reconcile --watch examples/basic/main.pkl
+ */
+amends "@formae/forma.pkl"
+
+import "@formae/formae.pkl"
+import "@cloudflare/cloudflare.pkl"
+import "@cloudflare/dns/zone.pkl" as dnsZone
+import "@cloudflare/dns/record.pkl" as dnsRecord
+
+// Configuration - replace with your values
+local accountId = "your-cloudflare-account-id"
+local domainName = "example.com"
+
+forma {
+  new formae.Stack {
+    label = "cloudflare-dns"
+    description = "Cloudflare DNS infrastructure"
+  }
+
+  new formae.Target {
+    label = "cloudflare"
+    namespace = "CLOUDFLARE"
+    config = new Mapping {
+      ["AccountId"] = accountId
+    }
+  }
+
+  // DNS Zone for the domain
+  new dnsZone.Zone {
+    label = "primary-zone"
+    name = domainName
+    account_id = accountId
+    `type` = "full"
+  }
+
+  // A record pointing to a web server
+  new dnsRecord.Record {
+    label = "www-record"
+    zone_id = "your-zone-id"  // Or use: new dnsZone.ZoneResolvable { label = "primary-zone" }.id
+    name = "www"
+    `type` = "A"
+    content = "192.0.2.1"
+    ttl = 300
+    proxied = true
+    comment = "Web server"
+  }
+
+  // CNAME record for an alias
+  new dnsRecord.Record {
+    label = "blog-record"
+    zone_id = "your-zone-id"
+    name = "blog"
+    `type` = "CNAME"
+    content = "www.\(domainName)"
+    ttl = 300
+    proxied = true
+    comment = "Blog alias"
+  }
+
+  // MX record for email
+  new dnsRecord.Record {
+    label = "mx-record"
+    zone_id = "your-zone-id"
+    name = "@"
+    `type` = "MX"
+    content = "mail.\(domainName)"
+    ttl = 3600
+    priority = 10
+    comment = "Primary mail server"
+  }
+
+  // TXT record for SPF
+  new dnsRecord.Record {
+    label = "spf-record"
+    zone_id = "your-zone-id"
+    name = "@"
+    `type` = "TXT"
+    content = "v=spf1 include:_spf.\(domainName) ~all"
+    ttl = 3600
+    comment = "SPF record"
+  }
+}

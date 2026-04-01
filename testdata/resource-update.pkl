@@ -1,0 +1,45 @@
+/*
+ * Conformance Test: Update DNS Record (in-place)
+ *
+ * This file modifies mutable fields to trigger an in-place update.
+ * Changes from resource.pkl:
+ *   - content: changed text
+ *   - ttl: changed from 300 to 600
+ *   - comment: changed text
+ *
+ * These fields do NOT have createOnly=true, so formae should update
+ * the resource in place without replacement.
+ */
+amends "@formae/forma.pkl"
+import "@formae/formae.pkl"
+
+import "@cloudflare/dns/record.pkl" as dnsRecord
+
+local stackName = "plugin-sdk-test-stack"
+local testRunID = read("env:FORMAE_TEST_RUN_ID")
+local zoneId = read("env:CLOUDFLARE_ZONE_ID")
+
+forma {
+  new formae.Stack {
+    label = stackName
+    description = "Plugin SDK conformance test stack"
+  }
+
+  new formae.Target {
+    label = "cloudflare-target"
+    namespace = "CLOUDFLARE"
+    config = new Mapping {
+      ["ZoneId"] = zoneId
+    }
+  }
+
+  new dnsRecord.Record {
+    label = "plugin-sdk-test-record"
+    zone_id = zoneId
+    name = "formae-test-\(testRunID)"              // unchanged (part of identity)
+    `type` = "TXT"                                  // unchanged (createOnly)
+    content = "formae-plugin-sdk-test-UPDATED"      // CHANGED
+    ttl = 600                                       // CHANGED from 300
+    comment = "Test record - UPDATED"               // CHANGED
+  }
+}

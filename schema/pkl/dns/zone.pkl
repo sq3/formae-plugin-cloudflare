@@ -1,0 +1,108 @@
+module zone
+
+import "@formae/formae.pkl"
+import "../cloudflare.pkl"
+
+const type = "Cloudflare::DNS::Zone"
+
+/// Zone type: full (Cloudflare as primary) or partial (CNAME setup)
+typealias ZoneType = "full" | "partial"
+
+/// Zone status
+typealias ZoneStatus = "active" | "pending" | "initializing" | "moved" | "deleted" | "deactivated"
+
+/// Zone plan type
+typealias PlanType = "free" | "pro" | "business" | "enterprise"
+
+/// Resolvable reference to a Zone resource
+open class ZoneResolvable extends formae.Resolvable {
+  hidden type = module.type
+
+  /// The zone ID
+  hidden id: ZoneResolvable = (this) {
+    property = "id"
+  }
+
+  /// The zone name (domain)
+  hidden name: ZoneResolvable = (this) {
+    property = "name"
+  }
+
+  /// The zone name servers
+  hidden nameServers: ZoneResolvable = (this) {
+    property = "name_servers"
+  }
+}
+
+/// Cloudflare DNS Zone
+/// A DNS zone represents a domain name and its associated DNS records.
+/// Create: POST /zones
+/// Read: GET /zones/{zone_id}
+/// Update: PATCH /zones/{zone_id}
+/// Delete: DELETE /zones/{zone_id}
+@cloudflare.ResourceHint {
+  type = module.type
+  identifier = "id"
+}
+open class Zone extends formae.Resource {
+  // ========== Required Properties ==========
+
+  /// Domain name for the zone (e.g., example.com)
+  @cloudflare.FieldHint {
+    required = true
+    createOnly = true
+  }
+  name: String
+
+  /// Account ID that owns this zone
+  @cloudflare.FieldHint {
+    required = true
+    createOnly = true
+  }
+  account_id: String
+
+  // ========== Optional Properties ==========
+
+  /// Zone type: full (Cloudflare as primary DNS) or partial (CNAME setup)
+  @cloudflare.FieldHint { createOnly = true }
+  `type`: ZoneType = "full"
+
+  /// Enable DNSSEC for the zone
+  @cloudflare.FieldHint {}
+  dnssec: Boolean?
+
+  /// Whether the zone is paused (traffic bypasses Cloudflare)
+  @cloudflare.FieldHint {}
+  paused: Boolean?
+
+  // ========== Read-Only Properties (populated by Cloudflare, not managed) ==========
+
+  /// Zone ID (assigned by Cloudflare)
+  id: String?
+
+  /// Zone status
+  status: ZoneStatus?
+
+  /// Assigned Cloudflare name servers
+  name_servers: Listing<String>?
+
+  /// Original name servers (before Cloudflare)
+  original_name_servers: Listing<String>?
+
+  /// Original registrar
+  original_registrar: String?
+
+  /// Zone creation timestamp
+  created_on: String?
+
+  /// Zone modification timestamp
+  modified_on: String?
+
+  local parent = this
+
+  /// Provides resolvable references to this zone's properties
+  hidden res: ZoneResolvable = new {
+    label = parent.label
+    stack = parent.stack?.label
+  }
+}

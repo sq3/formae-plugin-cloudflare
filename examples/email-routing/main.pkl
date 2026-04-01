@@ -1,0 +1,117 @@
+/*
+ * Cloudflare Email Routing Example
+ *
+ * This example shows how to set up email routing using the Cloudflare plugin.
+ * Email routing allows you to create custom email addresses and forward them
+ * to your existing email accounts.
+ *
+ * Prerequisites:
+ * - Set CLOUDFLARE_API_TOKEN environment variable with a Cloudflare API token
+ * - Have a zone with email routing enabled
+ * - Verify destination email addresses in the Cloudflare dashboard first
+ *
+ * Run with: formae apply --mode reconcile --watch examples/email-routing/main.pkl
+ */
+amends "@formae/forma.pkl"
+
+import "@formae/formae.pkl"
+import "@cloudflare/cloudflare.pkl"
+import "@cloudflare/email/routing_rule.pkl" as emailRule
+import "@cloudflare/email/destination_address.pkl" as emailDest
+
+// Configuration - replace with your values
+local accountId = "your-cloudflare-account-id"
+local zoneId = "your-zone-id"
+local destinationEmail = "your-real-email@gmail.com"
+
+forma {
+  new formae.Stack {
+    label = "email-routing"
+    description = "Cloudflare email routing configuration"
+  }
+
+  new formae.Target {
+    label = "cloudflare"
+    namespace = "CLOUDFLARE"
+    config = new Mapping {
+      ["AccountId"] = accountId
+      ["ZoneId"] = zoneId
+    }
+  }
+
+  // Destination address - must be verified in Cloudflare dashboard
+  new emailDest.DestinationAddress {
+    label = "primary-destination"
+    account_id = accountId
+    email = destinationEmail
+  }
+
+  // Catch-all rule - forwards all emails to the destination
+  new emailRule.RoutingRule {
+    label = "catch-all-rule"
+    zone_id = zoneId
+    name = "Catch-all forward"
+    enabled = true
+    priority = 100
+
+    matchers = new Listing {
+      new emailRule.Matcher {
+        `type` = "all"
+      }
+    }
+
+    actions = new Listing {
+      new emailRule.Action {
+        `type` = "forward"
+        value = new Listing { destinationEmail }
+      }
+    }
+  }
+
+  // Specific rule for contact@ address
+  new emailRule.RoutingRule {
+    label = "contact-rule"
+    zone_id = zoneId
+    name = "Contact address"
+    enabled = true
+    priority = 10  // Higher priority (lower number) than catch-all
+
+    matchers = new Listing {
+      new emailRule.Matcher {
+        `type` = "literal"
+        field = "to"
+        value = "contact@example.com"  // Replace with your domain
+      }
+    }
+
+    actions = new Listing {
+      new emailRule.Action {
+        `type` = "forward"
+        value = new Listing { destinationEmail }
+      }
+    }
+  }
+
+  // Drop rule for unwanted addresses
+  new emailRule.RoutingRule {
+    label = "spam-drop-rule"
+    zone_id = zoneId
+    name = "Drop spam addresses"
+    enabled = true
+    priority = 5  // Highest priority
+
+    matchers = new Listing {
+      new emailRule.Matcher {
+        `type` = "literal"
+        field = "to"
+        value = "spam@example.com"  // Replace with your domain
+      }
+    }
+
+    actions = new Listing {
+      new emailRule.Action {
+        `type` = "drop"
+      }
+    }
+  }
+}

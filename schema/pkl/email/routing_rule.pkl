@@ -1,0 +1,118 @@
+module routing_rule
+
+import "@formae/formae.pkl"
+import "../cloudflare.pkl"
+import "../dns/zone.pkl" as zone
+
+const type = "Cloudflare::Email::RoutingRule"
+
+/// Email routing rule action types
+typealias ActionType = "forward" |   // Forward to destination address
+  "worker" |                         // Process with Cloudflare Worker
+  "drop"                             // Drop the email
+
+/// Matcher type for routing rules
+typealias MatcherType = "literal" |  // Exact match
+  "all"                              // Match all emails
+
+/// Email routing action
+@cloudflare.SubResourceHint {}
+class Action extends formae.SubResource {
+  /// Action type: forward, worker, or drop
+  @cloudflare.FieldHint { required = true }
+  `type`: ActionType
+
+  /// Destination addresses for forward action (verified addresses only)
+  @cloudflare.FieldHint {}
+  value: Listing<String>?
+}
+
+/// Email routing matcher
+@cloudflare.SubResourceHint {}
+class Matcher extends formae.SubResource {
+  /// Matcher type: literal (exact match) or all (catch-all)
+  @cloudflare.FieldHint { required = true }
+  `type`: MatcherType
+
+  /// Field to match on (e.g., "to" for recipient address)
+  @cloudflare.FieldHint {}
+  field: String?
+
+  /// Value to match against
+  @cloudflare.FieldHint {}
+  value: String?
+}
+
+/// Resolvable reference to an Email Routing Rule resource
+open class RoutingRuleResolvable extends formae.Resolvable {
+  hidden type = module.type
+
+  /// The rule ID
+  hidden id: RoutingRuleResolvable = (this) {
+    property = "id"
+  }
+
+  /// The rule name
+  hidden name: RoutingRuleResolvable = (this) {
+    property = "name"
+  }
+}
+
+/// Cloudflare Email Routing Rule
+/// Rules that define how incoming emails are handled.
+/// Create: POST /zones/{zone_id}/email/routing/rules
+/// Read: GET /zones/{zone_id}/email/routing/rules/{rule_id}
+/// Update: PUT /zones/{zone_id}/email/routing/rules/{rule_id}
+/// Delete: DELETE /zones/{zone_id}/email/routing/rules/{rule_id}
+@cloudflare.ResourceHint {
+  type = module.type
+  identifier = "id"
+}
+open class RoutingRule extends formae.Resource {
+  // ========== Required Properties ==========
+
+  /// Zone ID this rule belongs to
+  @cloudflare.FieldHint {
+    required = true
+    createOnly = true
+  }
+  zone_id: (String|zone.ZoneResolvable)
+
+  /// Matchers to determine which emails this rule applies to
+  @cloudflare.FieldHint { required = true }
+  matchers: Listing<Matcher>
+
+  /// Actions to take when matchers match
+  @cloudflare.FieldHint { required = true }
+  actions: Listing<Action>
+
+  // ========== Optional Properties ==========
+
+  /// Human-readable name for the rule
+  @cloudflare.FieldHint {}
+  name: String?
+
+  /// Whether the rule is enabled
+  @cloudflare.FieldHint {}
+  enabled: Boolean = true
+
+  /// Priority of the rule (lower = higher priority)
+  @cloudflare.FieldHint {}
+  priority: Int?
+
+  // ========== Read-Only Properties (populated by Cloudflare, not managed) ==========
+
+  /// Rule ID (assigned by Cloudflare)
+  id: String?
+
+  /// Rule tag (unique identifier)
+  tag: String?
+
+  local parent = this
+
+  /// Provides resolvable references to this rule's properties
+  hidden res: RoutingRuleResolvable = new {
+    label = parent.label
+    stack = parent.stack?.label
+  }
+}

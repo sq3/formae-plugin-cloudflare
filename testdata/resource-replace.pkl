@@ -1,0 +1,43 @@
+/*
+ * Conformance Test: Replace DNS Record
+ *
+ * This file modifies a createOnly field to trigger resource replacement.
+ * Changes from resource.pkl:
+ *   - type: changed from "TXT" to "A" (and content accordingly)
+ *
+ * The type field has createOnly=true, so formae should delete the
+ * existing resource and create a new one with the new type.
+ */
+amends "@formae/forma.pkl"
+import "@formae/formae.pkl"
+
+import "@cloudflare/dns/record.pkl" as dnsRecord
+
+local stackName = "plugin-sdk-test-stack"
+local testRunID = read("env:FORMAE_TEST_RUN_ID")
+local zoneId = read("env:CLOUDFLARE_ZONE_ID")
+
+forma {
+  new formae.Stack {
+    label = stackName
+    description = "Plugin SDK conformance test stack"
+  }
+
+  new formae.Target {
+    label = "cloudflare-target"
+    namespace = "CLOUDFLARE"
+    config = new Mapping {
+      ["ZoneId"] = zoneId
+    }
+  }
+
+  new dnsRecord.Record {
+    label = "plugin-sdk-test-record"
+    zone_id = zoneId
+    name = "formae-test-\(testRunID)"
+    `type` = "A"                                    // CHANGED - triggers replacement
+    content = "192.0.2.1"                           // CHANGED to match A record format
+    ttl = 300
+    comment = "Test record for plugin SDK conformance tests"
+  }
+}

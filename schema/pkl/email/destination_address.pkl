@@ -1,0 +1,70 @@
+module destination_address
+
+import "@formae/formae.pkl"
+import "../cloudflare.pkl"
+
+const type = "Cloudflare::Email::DestinationAddress"
+
+/// Resolvable reference to a Destination Address resource
+open class DestinationAddressResolvable extends formae.Resolvable {
+  hidden type = module.type
+
+  /// The address ID
+  hidden id: DestinationAddressResolvable = (this) {
+    property = "id"
+  }
+
+  /// The email address
+  hidden email: DestinationAddressResolvable = (this) {
+    property = "email"
+  }
+}
+
+/// Cloudflare Email Routing Destination Address
+/// A verified destination email address for email routing.
+/// Create: POST /accounts/{account_id}/email/routing/addresses
+/// Read: GET /accounts/{account_id}/email/routing/addresses/{address_id}
+/// Delete: DELETE /accounts/{account_id}/email/routing/addresses/{address_id}
+@cloudflare.ResourceHint {
+  type = module.type
+  identifier = "id"
+}
+open class DestinationAddress extends formae.Resource {
+  // ========== Required Properties ==========
+
+  /// Account ID that owns this destination address
+  @cloudflare.FieldHint {
+    required = true
+    createOnly = true
+  }
+  account_id: String
+
+  /// The destination email address to verify
+  @cloudflare.FieldHint {
+    required = true
+    createOnly = true
+  }
+  email: String
+
+  // ========== Read-Only Properties (populated by Cloudflare, not managed) ==========
+
+  /// Address ID (assigned by Cloudflare)
+  id: String?
+
+  /// Verification status
+  verified: String?
+
+  /// Creation timestamp
+  created: String?
+
+  /// Last modification timestamp
+  modified: String?
+
+  local parent = this
+
+  /// Provides resolvable references to this address's properties
+  hidden res: DestinationAddressResolvable = new {
+    label = parent.label
+    stack = parent.stack?.label
+  }
+}

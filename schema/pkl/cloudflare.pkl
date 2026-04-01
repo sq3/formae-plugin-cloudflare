@@ -1,0 +1,30 @@
+module cloudflare
+
+import "@formae/formae.pkl"
+
+/// Cloudflare target configuration
+/// Connection details for a Cloudflare account.
+open class Config {
+  hidden fixed type: String = "Cloudflare"
+
+  /// Cloudflare Account ID (for account-scoped resources)
+  hidden accountId: String?
+
+  /// API Token (recommended) - read from CLOUDFLARE_API_TOKEN env var
+  hidden apiToken: String?
+
+  // Exported fields to target config
+  fixed Type: String = type
+  fixed AccountId: String? = accountId
+  fixed ApiToken: String? = apiToken
+}
+
+class FieldHint extends formae.FieldHint {}
+
+class ResourceHint extends formae.ResourceHint {
+  hidden outputKeyTransformation: (String) -> String = (it) -> it
+}
+
+class SubResourceHint extends formae.SubResourceHint {
+  hidden outputKeyTransformation: (String) -> String = (it) -> it
+}
