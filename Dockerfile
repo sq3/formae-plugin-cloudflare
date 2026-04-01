@@ -10,6 +10,6 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -trimpath -o cloudflare .
 
 FROM busybox:stable
-COPY --from=builder /build/cloudflare /plugin/cloudflare/v0.1.0/cloudflare
-COPY schema/pkl/ /plugin/cloudflare/v0.1.0/schema/pkl/
-COPY formae-plugin.pkl /plugin/cloudflare/v0.1.0/formae-plugin.pkl
+COPY --from=builder /build/cloudflare /plugin/cloudflare
+COPY schema/pkl/ /plugin/schema/pkl/
+COPY formae-plugin.pkl /plugin/formae-plugin.pkl
